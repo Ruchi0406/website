@@ -1,0 +1,187 @@
+<html>
+<head>
+    <title>Lecture Finder</title>
+    <script src="https://unpkg.com/react/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        .animated-border {
+            position: relative;
+            padding: 6px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .animated-border::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff6ec4, #7873f5, #ff6ec4, #7873f5);
+            background-size: 400%;
+            z-index: -1;
+            filter: blur(5px);
+            animation: borderAnimation 20s linear infinite;
+        }
+        @keyframes borderAnimation {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div id="root"></div>
+    <script type="text/babel">
+        const subjects = ["physics", "maths", "organic", "inorganic", "physical"];
+
+        function App() {
+            const [selectedSubject, setSelectedSubject] = React.useState(null);
+            const [teachers, setTeachers] = React.useState([]);
+            const [selectedTeacher, setSelectedTeacher] = React.useState(null);
+            const [chapters, setChapters] = React.useState([]);
+            const [selectedChapter, setSelectedChapter] = React.useState(null);
+            const [lectureLink, setLectureLink] = React.useState(null);
+            const [loading, setLoading] = React.useState(false);
+
+            const fetchTeachers = async (subject) => {
+                setLoading(true);
+                const response = await fetch(`https://zenova-api-green.vercel.app/teachers?subject=${subject}`);
+                const data = await response.json();
+                setTeachers(data.teachers);
+                setLoading(false);
+            };
+
+            const fetchChapters = async (subject, teacher) => {
+                setLoading(true);
+                const response = await fetch(`https://zenova-api-green.vercel.app/chapters?subject=${subject}&teacher=${teacher}`);
+                const data = await response.json();
+                setChapters(data.chapters);
+                setLoading(false);
+            };
+
+            const fetchLectureLink = async (subject, teacher, chapter) => {
+                setLoading(true);
+                const response = await fetch(`https://zenova-api-green.vercel.app/lecture?subject=${subject}&teacher=${teacher}&ch=${chapter}`);
+                const data = await response.json();
+                setLectureLink(data.link);
+                setLoading(false);
+            };
+
+            const formatCamelCase = (text) => {
+                return text.replace(/([a-z])([A-Z])/g, '$1 $2');
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center min-h-screen p-4">
+                    <h1 className="text-4xl font-bold mb-4">Lecture Finder</h1>
+                    {loading && <div className="text-lg mb-4">Loading...</div>}
+                    {!selectedSubject && !loading && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {subjects.map(subject => (
+                                <button
+                                    key={subject}
+                                    className="bg-blue-800 p-6 rounded-md text-center truncate animated-border"
+                                    onClick={() => {
+                                        setSelectedSubject(subject);
+                                        fetchTeachers(subject);
+                                    }}
+                                >
+                                    {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {selectedSubject && !selectedTeacher && !loading && (
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-2xl font-bold mb-4">Select a Teacher</h2>
+                            <div className="overflow-y-auto max-h-64 w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {teachers.map(teacher => (
+                                    <button
+                                        key={teacher}
+                                        className="bg-blue-800 p-6 rounded-md text-center truncate animated-border"
+                                        onClick={() => {
+                                            setSelectedTeacher(teacher);
+                                            fetchChapters(selectedSubject, teacher);
+                                        }}
+                                    >
+                                        {formatCamelCase(teacher)}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                className="mt-4 bg-red-500 p-2 rounded-md"
+                                onClick={() => {
+                                    setSelectedSubject(null);
+                                    setTeachers([]);
+                                }}
+                            >
+                                Back
+                            </button>
+                        </div>
+                    )}
+                    {selectedTeacher && !selectedChapter && !loading && (
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-2xl font-bold mb-4">Select a Chapter</h2>
+                            <div className="overflow-y-auto max-h-64 w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {chapters.map(chapter => (
+                                    <button
+                                        key={chapter}
+                                        className="bg-blue-800 p-6 rounded-md text-center truncate animated-border"
+                                        onClick={() => {
+                                            setSelectedChapter(chapter);
+                                            fetchLectureLink(selectedSubject, selectedTeacher, chapter);
+                                        }}
+                                    >
+                                        {chapter}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                className="mt-4 bg-red-500 p-2 rounded-md"
+                                onClick={() => {
+                                    setSelectedTeacher(null);
+                                    setChapters([]);
+                                }}
+                            >
+                                Back
+                            </button>
+                        </div>
+                    )}
+                    {lectureLink && !loading && (
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-2xl font-bold mb-4">Lecture Link</h2>
+                            <a href={lectureLink} className="bg-blue-500 p-4 rounded-md text-center" target="_blank" rel="noopener noreferrer">
+                                Go to Lecture
+                            </a>
+                            <button
+                                className="mt-4 bg-red-500 p-2 rounded-md"
+                                onClick={() => {
+                                    setSelectedChapter(null);
+                                    setLectureLink(null);
+                                }}
+                            >
+                                Back
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
